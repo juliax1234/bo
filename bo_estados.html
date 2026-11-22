@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gerador de BO - Todos os Estados</title>
+<style>
+  /* --- ESTILOS GERAIS DA INTERFACE --- */
+  * { box-sizing: border-box; }
+  :root{
+    --ink:#000; --line:#000; --bar:#f2f2f2;
+    --mono:"Courier New", Courier, monospace;
+    --sans:Arial, Helvetica, sans-serif;
+  }
+  body { margin:0; background:#d9dde2; font-family:var(--sans); color:var(--ink); }
+
+  .toolbar{
+    position:sticky; top:0; z-index:50;
+    display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content: center;
+    padding:10px 16px; background:#0d1b2a; color:#fff; font-size:13px;
+    box-shadow:0 2px 8px rgba(0,0,0,.35);
+  }
+  .toolbar button { cursor:pointer; border:1px solid #3d5a80; border-radius:5px; background:#1b3a5c; color:#fff; padding:8px 14px; font-weight:bold; }
+  .toolbar button:hover { background:#2b5c8f; }
+  .toolbar button.primario { background:#0f7a3d; border-color:#12914a; }
+  
+  /* SELETOR DE ESTADO */
+  select#selEstado {
+    padding: 8px; font-size: 14px; border-radius: 5px; border: none; font-weight: bold;
+  }
+
+  /* --- ESTILOS DA FOLHA A4 --- */
+  .folha {
+    position:relative; width:210mm; min-height:297mm; margin:18px auto;
+    background:#fff; padding:14mm 15mm 12mm; display:flex; flex-direction:column;
+    box-shadow:0 6px 22px rgba(0,0,0,.28); overflow:hidden;
+  }
+  .marca { position:absolute; inset:0; pointer-events:none; z-index:0;
+    display:flex; flex-direction:column; justify-content:center; align-items:center;
+    gap:90px; overflow:hidden; }
+  .marca span { font-family:var(--sans); font-weight:bold; font-size:78px; letter-spacing:28px;
+    color:#000; opacity:.055; transform:rotate(-33deg); white-space:nowrap; }
+
+  .conteudo { position:relative; z-index:1; }
+
+  /* CABEÇALHO DINÂMICO */
+  .cabecalho { display:flex; align-items:center; gap:10mm; padding-bottom:6mm; }
+  .brasao-area { flex:0 0 24mm; text-align: center; }
+  .brasao-area img { width:24mm; height:27mm; object-fit:contain; display:block; margin: 0 auto;}
+
+  .titulos { flex:1; text-align:center; line-height:1.35; }
+  .titulos .l1 { font-size:12.5pt; font-weight:bold; letter-spacing:.3px; }
+  .titulos .l2 { font-size:16pt; font-weight:bold; text-transform: uppercase; }
+  .titulos .l3 { font-size:10.5pt; }
+
+  hr.regua { border:0; border-top:1.6px solid #000; margin:0 0 6mm; }
+
+  /* BLOCOS DO DOCUMENTO */
+  .faixa-topo { border:1.4px solid #000; background:var(--bar); text-align:center; font-weight:bold; font-size:11.5pt; padding:3mm 4mm; letter-spacing:.4px; margin-bottom:4mm; }
+  .meta { display:flex; justify-content:space-between; gap:6mm; font-size:9.5pt; margin-bottom:4mm; }
+  .secao { background:#111; color:#fff; font-weight:bold; font-size:9.5pt; letter-spacing:.6px; padding:2mm 3mm; margin:0; border:1.2px solid #000; border-bottom:0; text-transform:uppercase; }
+  
+  table.grade { width:100%; border-collapse:collapse; margin:0 0 5mm; table-layout:fixed; }
+  table.grade td { border:1.2px solid #000; padding:2.2mm 3mm; font-size:9.5pt; vertical-align:middle; }
+  td.rotulo { width:31%; font-weight:bold; background:#fff; }
+  td.valor { font-family:var(--mono); font-weight:bold; font-size:9.5pt; text-transform:uppercase; letter-spacing:.3px; }
+  td.valor.vermelho { color:#c00000; }
+  td.valor .idade { font-family:var(--sans); font-size:9pt; font-weight:bold; }
+
+  .caixa-historico { border:1.2px solid #000; padding:3mm; font-family:var(--mono); font-size:9.5pt; line-height:1.55; text-transform:uppercase; letter-spacing:.2px; min-height:38mm; margin-bottom:5mm; text-align:justify; }
+
+  /* CAMPOS EDITÁVEIS */
+  .campo { outline:none; min-height:1.15em; cursor:text; }
+  .campo:focus { background:#fffbe6; box-shadow:inset 0 -1px 0 #f0c000; }
+  .campo:empty::before { content:attr(data-ph); color:#9a9a9a; font-family:var(--sans); font-weight:normal; text-transform:none; letter-spacing:0; font-size:9pt; }
+  .rodape { margin-top:auto; padding-top:10mm; text-align:center; font-size:8.5pt; color:#222; }
+
+  /* IMPRESSÃO */
+  @page { size:A4; margin:0; }
+  @media print {
+    body { background:#fff; }
+    .toolbar, .dica { display:none !important; }
+    .folha { margin:0; box-shadow:none; width:210mm; min-height:297mm; page-break-after:always; }
+    .campo:empty::before { content:""; }
+    .campo:focus { background:transparent; box-shadow:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <span style="margin-right:15px;">Escolha o Estado:</span>
+  <select id="selEstado" onchange="mudarEstado()">
+    <option value="MG">Minas Gerais</option>
+    <option value="SP">São Paulo</option>
+    <option value="RJ">Rio de Janeiro</option>
+    <option value="RS">Rio Grande do Sul</option>
+    <option value="PR">Paraná</option>
+    <option value="BA">Bahia</option>
+    <option value="SC">Santa Catarina</option>
+    <option value="GO">Goiás</option>
+    <option value="PE">Pernambuco</option>
+    <option value="CE">Ceará</option>
+    <option value="PA">Pará</option>
+    <option value="AM">Amazonas</option>
+    <option value="MT">Mato Grosso</option>
+    <option value="MA">Maranhão</option>
+    <option value="ES">Espírito Santo</option>
+    <option value="PB">Paraíba</option>
+    <option value="RN">Rio Grande do Norte</option>
+    <option value="AL">Alagoas</option>
+    <option value="PI">Piauí</option>
+    <option value="DF">Distrito Federal</option>
+    <option value="TO">Tocantins</option>
+    <option value="RO">Rondônia</option>
+    <option value="AC">Acre</option>
+    <option value="AP">Amapá</option>
+    <option value="RR">Roraima</option>
+    <option value="SE">Sergipe</option>
+    <option value="MS">Mato Grosso do Sul</option>
+  </select>
+
+  <button type="button" id="btnHoje">Data/hora de hoje</button>
+  <button type="button" id="btnLimpar">Limpar campos</button>
+  <button type="button" class="primario" onclick="window.print()">Baixar PDF</button>
+</div>
+<p class="dica" style="text-align:center; padding: 5px;">Edite os campos clicando neles. Ao imprimir, escolha "Sem Margens".</p>
+
+<div class="folha" id="folha">
+  <div class="marca"><span>CONFIDENCIAL</span><span>SISP</span></div>
+
+  <div class="conteudo">
+    <div class="cabecalho">
+      <div class="brasao-area">
+        <!-- O JS vai trocar essa imagem -->
+        <img id="imgBrasao" src="" alt="Brasão">
+      </div>
+
+      <div class="titulos">
+        <div class="l1">BOLETIM DE OCORRÊNCIA (BO)</div>
+        <div class="l2" id="txtSecretaria">SECRETARIA DA SEGURANÇA PÚBLICA (MG)</div>
+        <div class="l3">Departamento de Polícia Civil / CISP</div>
+      </div>
+    </div>
+
+    <hr class="regua">
+
+    <div class="faixa-topo">CONSULTA DE ANTECEDENTES CRIMINAIS</div>
+
+    <div class="meta">
+      <span>Data Emissão: <span class="campo" contenteditable="true" data-ph="__/__/__" id="dataEmissao"></span></span>
+      <span>Protocolo: <span class="campo" contenteditable="true" data-ph="MG-000000"></span></span>
+      <span>ID Consulta: <span class="campo" contenteditable="true" data-ph="REQ-000000"></span></span>
+    </div>
+
+    <div class="secao">Dados do Indivíduo</div>
+    <table class="grade">
+      <tr>
+        <td class="rotulo">Nome Completo:</td>
+        <td class="valor campo" contenteditable="true" data-ph="Nome completo"></td>
+      </tr>
+      <tr>
+        <td class="rotulo">CPF:</td>
+        <td class="valor campo" contenteditable="true" data-ph="000.000.000-00"></td>
+      </tr>
+      <tr>
+        <td class="rotulo">Data de Nascimento:</td>
+        <td class="valor campo" contenteditable="true" data-ph="__/__" id="nascimento"></td>
+      </tr>
+      <tr>
+        <td class="rotulo">Nome da Mãe:</td>
+        <td class="valor campo" contenteditable="true" data-ph="Nome da mãe"></td>
+      </tr>
+      <tr>
+        <td class="rotulo">Nome do Pai:</td>
+        <td class="valor campo" contenteditable="true" data-ph="Nome do pai"></td>
+      </tr>
+      <tr>
+        <td class="rotulo">Situação Cadastral:</td>
+        <td class="valor vermelho campo" contenteditable="true" data-ph="NADA CONSTA"></td>
+      </tr>
+    </table>
+
+    <div class="secao">Histórico / Ocorrências Detectadas</div>
+    <div class="caixa-historico campo" contenteditable="true" data-ph="Descreva a ocorrência..."></div>
+
+    <div class="secao">Movimentação Processual / Conexão Cyber</div>
+    <table class="grade">
+      <tr>
+        <td class="rotulo">Data Movimentação:</td>
+        <td class="valor campo" contenteditable="true" data-ph="__/__"></td>
+      </tr>
+      <tr>
+        <td class="rotulo">Órgão de Origem:</td>
+        <td class="valor campo" contenteditable="true" data-ph="Órgão responsável"></td>
+      </tr>
+      <tr>
+        <td class="rotulo">Vínculo Detectado:</td>
+        <td class="valor campo" contenteditable="true" data-ph="Tipo de vínculo"></td>
+      </tr>
+    </table>
+
+    <div class="rodape">
+      Documento gerado eletronicamente pelo Sistema Integrado de Segurança Pública (SISP) do Estado.
+    </div>
+  </div>
+</div>
+
+<script>
+  // BANCO DE DADOS DOS ESTADOS
+  const estados = {
+    "AC": { nome: "Acre", url: "acre.jpg" },
+    "AL": { nome: "Alagoas", url: "al.jpg" },
+    "AM": { nome: "Amazonas", url: "amazonas.jpg" },
+    "AP": { nome: "Amapá", url: "amapa.jpg" },
+    "BA": { nome: "Bahia", url: "bahia.jpg" },
+    "CE": { nome: "Ceará", url: "ceara.jpg" },
+    "DF": { nome: "Distrito Federal", url: "df.png" },
+    "ES": { nome: "Espírito Santo", url: "es.jpg" },
+    "GO": { nome: "Goiás", url: "go.png" },
+    "MA": { nome: "Maranhão", url: "ma.jpg" },
+    "MG": { nome: "Minas Gerais", url: "brasao.jpg" },
+    "MS": { nome: "Mato Grosso do Sul", url: "ms.jpg" },
+    "MT": { nome: "Mato Grosso", url: "mt.jpg" },
+    "PA": { nome: "Pará", url: "pa.jpg" },
+    "PB": { nome: "Paraíba", url: "pb.jpg" },
+    "PE": { nome: "Pernambuco", url: "pe.jpg" },
+    "PI": { nome: "Piauí", url: "pi.png" },
+    "PR": { nome: "Paraná", url: "pr.jpg" },
+    "RJ": { nome: "Rio de Janeiro", url: "rj.jpg" },
+    "RN": { nome: "Rio Grande do Norte", url: "rn.jpg" },
+    "RO": { nome: "Rondônia", url: "ro.jpg" },
+    "RR": { nome: "Roraima", url: "rr.jpg" },
+    "RS": { nome: "Rio Grande do Sul", url: "rs.jpg" },
+    "SC": { nome: "Santa Catarina", url: "sc.jpg" },
+    "SE": { nome: "Sergipe", url: "se.jpg" },
+    "SP": { nome: "São Paulo", url: "sp.png" },
+    "TO": { nome: "Tocantins", url: "to.jpg" }
+  };
+
+  function mudarEstado() {
+    const sigla = document.getElementById('selEstado').value;
+    const dados = estados[sigla];
+    
+    if(dados) {
+      document.getElementById('imgBrasao').src = dados.url;
+      document.getElementById('txtSecretaria').innerText = `SECRETARIA DA SEGURANÇA PÚBLICA (${sigla})`;
+    }
+  }
+
+  // Inicializa com MG
+  mudarEstado();
+
+  // Lógica de Data/Hora e Idade (igual ao original)
+  const nasc = document.getElementById('nascimento');
+  nasc.addEventListener('input', () => {
+    const txt = nasc.innerText.trim();
+    const m = txt.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    nasc.innerHTML = txt.replace(/<br>/g, '');
+    if (!m) return;
+    const d = +m[1], mes = +m[2], a = +m[3];
+    const hoje = new Date();
+    let idade = hoje.getFullYear() - a;
+    if (hoje.getMonth() + 1 < mes || (hoje.getMonth() + 1 === mes && hoje.getDate() < d)) idade--;
+    if (idade >= 0 && idade < 130) {
+      const base = txt.slice(0, 10);
+      nasc.innerHTML = base + ' &nbsp;<span class="idade">(' + idade + ' ANOS)</span>';
+      const r = document.createRange(); r.selectNodeContents(nasc); r.collapse(false);
+      const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+    }
+  });
+
+  document.getElementById('btnHoje').addEventListener('click', () => {
+    const n = new Date();
+    const p = v => String(v).padStart(2, '0');
+    document.getElementById('dataEmissao').textContent =
+      `${p(n.getDate())}/${p(n.getMonth() + 1)}/${n.getFullYear()} às ${p(n.getHours())}:${p(n.getMinutes())}`;
+  });
+
+  document.getElementById('btnLimpar').addEventListener('click', () => {
+    if (!confirm('Apagar todos os campos preenchidos?')) return;
+    document.querySelectorAll('.campo').forEach(c => c.innerHTML = '');
+  });
+</script>
+</body>
+</html>
