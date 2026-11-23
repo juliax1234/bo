@@ -1,2 +1,12 @@
 .brasao{ flex:0 0 24mm; }
 .brasao img{ width:24mm; height:27mm; object-fit:contain; display:block; }
+.campo {
+    color: #000000 !important;
+    font-weight: normal;
+    opacity: 1;
+}
+
+.campo[contenteditable="true"] {
+    color: #000000 !important;
+    opacity: 1;
+}
